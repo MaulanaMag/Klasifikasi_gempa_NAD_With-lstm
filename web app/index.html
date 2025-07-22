@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klasifikasi Gempa Bumi Aceh</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-blue: #2563eb;
+            --secondary-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --light-bg: #f0f9ff;
+            --white: #ffffff;
+            --text-dark: #1f2937;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--light-bg) 0%, #e0f2fe 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: linear-gradient(90deg, var(--primary-blue), var(--secondary-green));
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-green));
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 1rem 1.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-green));
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4);
+        }
+
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+            padding: 12px 15px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--secondary-green);
+            box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
+        }
+
+        .alert {
+            border-radius: 10px;
+            border: none;
+            padding: 15px 20px;
+        }
+
+        .alert-success {
+            background: linear-gradient(45deg, #dcfce7, #bbf7d0);
+            color: #166534;
+        }
+
+        .alert-warning {
+            background: linear-gradient(45deg, #fef3c7, #fde68a);
+            color: #92400e;
+        }
+
+        .alert-danger {
+            background: linear-gradient(45deg, #fee2e2, #fecaca);
+            color: #991b1b;
+        }
+
+        #map {
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .city-info {
+            background: linear-gradient(45deg, var(--accent-yellow), #fbbf24);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, var(--white), #f8fafc);
+            border-left: 4px solid var(--secondary-green);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stats-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-blue);
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .earthquake-icon {
+            font-size: 1.2em;
+            margin-right: 8px;
+        }
+
+        .classification-badge {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .badge-small {
+            background: linear-gradient(45deg, #22c55e, #16a34a);
+            color: white;
+        }
+
+        .badge-medium {
+            background: linear-gradient(45deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .badge-large {
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-globe-asia"></i> Klasifikasi Gempa Bumi Aceh
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> Informasi Sistem</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0">Sistem klasifikasi gempa bumi berdasarkan magnitudo: <span class="badge badge-small">Kecil < 4.5</span> <span class="badge badge-medium">Sedang 4.5-5.5</span> <span class="badge badge-large">Besar ≥ 5.5</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Form Input -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-map-pin"></i> Input Data Gempa</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="quakeForm">
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fas fa-city"></i> Pilih Kota Referensi</label>
+                                <select class="form-select" id="citySelect">
+                                    <option value="">Pilih Kota untuk Referensi Koordinat</option>
+                                </select>
+                            </div>
+
+                            <div class="city-info" id="cityInfo" style="display: none;">
+                                <i class="fas fa-info-circle"></i> <span id="cityCoordinates"></span>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Latitude</label>
+                                    <input type="number" class="form-control" id="latInput" step="0.000001" placeholder="Contoh: 5.5483" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Longitude</label>
+                                    <input type="number" class="form-control" id="lonInput" step="0.000001" placeholder="Contoh: 95.3238" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fas fa-arrows-alt-v"></i> Kedalaman (km)</label>
+                                <input type="number" class="form-control" id="depthInput" step="0.1" placeholder="Contoh: 10.5" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fas fa-chart-line"></i> Magnitudo</label>
+                                <input type="number" class="form-control" id="magInput" step="0.1" placeholder="Contoh: 5.2" required>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i> Prediksi Klasifikasi
+                            </button>
+                        </form>
+                        
+                        <div class="loading-spinner" id="loadingSpinner">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Memproses data...</p>
+                        </div>
+                        
+                        <div id="result" style="display:none;"></div>
+                    </div>
+                </div>
+
+                <!-- Statistik -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Statistik Prediksi</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">Total Prediksi</h6>
+                                    <div class="stats-number" id="totalPredictions">0</div>
+                                </div>
+                                <i class="fas fa-calculator fa-2x text-primary"></i>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="statsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Peta dan Visualisasi -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-map"></i> Peta Interaktif Aceh</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="map" style="height: 400px;"></div>
+                    </div>
+                </div>
+
+                <!-- Riwayat Prediksi -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-history"></i> Riwayat Prediksi</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="historyList" class="list-group">
+                            <div class="text-center text-muted p-3">
+                                <i class="fas fa-info-circle"></i> Belum ada prediksi
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Data kota-kota di NAD dengan koordinat
+        const cities = {
+            'Banda Aceh': { lat: 5.5483, lng: 95.3238, info: 'Ibu kota Provinsi Aceh' },
+            'Sabang': { lat: 5.8969, lng: 95.3203, info: 'Kota paling utara Indonesia' },
+            'Lhokseumawe': { lat: 5.1801, lng: 97.1507, info: 'Kota industri dan pelabuhan' },
+            'Langsa': { lat: 4.4684, lng: 97.9684, info: 'Kota di pesisir timur Aceh' },
+            'Subulussalam': { lat: 2.6774, lng: 97.9449, info: 'Kota di perbatasan Sumatera Utara' },
+            'Meulaboh': { lat: 4.1374, lng: 96.1266, info: 'Kota di pesisir barat Aceh' },
+            'Sigli': { lat: 5.3859, lng: 95.9615, info: 'Ibu kota Kabupaten Pidie' },
+            'Bireuen': { lat: 5.2027, lng: 96.7017, info: 'Kota di tengah Aceh' },
+            'Takengon': { lat: 4.6271, lng: 96.8293, info: 'Kota di dataran tinggi Gayo' },
+            'Calang': { lat: 4.6500, lng: 95.4167, info: 'Kota di pesisir barat daya' }
+        };
+
+        // Inisialisasi peta
+        let map = L.map('map').setView([5.5483, 95.3238], 8);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Tambahkan marker untuk setiap kota
+        Object.entries(cities).forEach(([cityName, cityData]) => {
+            const marker = L.marker([cityData.lat, cityData.lng]).addTo(map);
+            marker.bindPopup(`<b>${cityName}</b><br>${cityData.info}<br>Lat: ${cityData.lat}, Lng: ${cityData.lng}`);
+        });
+
+        // Populasi dropdown kota
+        const citySelect = document.getElementById('citySelect');
+        Object.keys(cities).forEach(cityName => {
+            const option = document.createElement('option');
+            option.value = cityName;
+            option.textContent = cityName;
+            citySelect.appendChild(option);
+        });
+
+        // Event listener untuk perubahan kota
+        citySelect.addEventListener('change', function() {
+            const selectedCity = this.value;
+            const cityInfo = document.getElementById('cityInfo');
+            const cityCoordinates = document.getElementById('cityCoordinates');
+            
+            if (selectedCity && cities[selectedCity]) {
+                const city = cities[selectedCity];
+                cityCoordinates.textContent = `${selectedCity}: Lat ${city.lat}, Lng ${city.lng} - ${city.info}`;
+                cityInfo.style.display = 'block';
+                
+                // Update input fields
+                document.getElementById('latInput').value = city.lat;
+                document.getElementById('lonInput').value = city.lng;
+                
+                // Center map on selected city
+                map.setView([city.lat, city.lng], 10);
+            } else {
+                cityInfo.style.display = 'none';
+                document.getElementById('latInput').value = '';
+                document.getElementById('lonInput').value = '';
+            }
+        });
+
+        // Variabel untuk tracking statistik
+        let predictionHistory = [];
+        let totalPredictions = 0;
+        let classificationCounts = { small: 0, medium: 0, large: 0 };
+
+        // Inisialisasi chart
+        const ctx = document.getElementById('statsChart').getContext('2d');
+        const statsChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Gempa Kecil', 'Gempa Sedang', 'Gempa Besar'],
+                datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Fungsi klasifikasi gempa
+        function classifyEarthquake(magnitude) {
+            if (magnitude < 4.5) {
+                return { class: 'small', label: 'Gempa Kecil', color: 'success' };
+            } else if (magnitude >= 4.5 && magnitude < 5.5) {
+                return { class: 'medium', label: 'Gempa Sedang', color: 'warning' };
+            } else {
+                return { class: 'large', label: 'Gempa Besar', color: 'danger' };
+            }
+        }
+
+        // Fungsi untuk mendapatkan ikon berdasarkan kelas
+        function getEarthquakeIcon(classification) {
+            switch(classification.class) {
+                case 'small': return 'fas fa-circle';
+                case 'medium': return 'fas fa-exclamation-triangle';
+                case 'large': return 'fas fa-exclamation-circle';
+                default: return 'fas fa-question-circle';
+            }
+        }
+
+        // Fungsi untuk menambahkan marker gempa di peta
+        function addEarthquakeMarker(lat, lng, magnitude, classification) {
+            const color = classification.class === 'small' ? 'green' : 
+                         classification.class === 'medium' ? 'orange' : 'red';
+            
+            const marker = L.marker([lat, lng]).addTo(map);
+            marker.bindPopup(`
+                <b>${classification.label}</b><br>
+                Magnitudo: ${magnitude}<br>
+                Koordinat: ${lat}, ${lng}
+            `);
+            
+            // Animasi marker
+            marker.on('add', function() {
+                this.setOpacity(0);
+                this.setOpacity(1);
+            });
+        }
+
+        // Fungsi untuk update statistik
+        function updateStats(classification) {
+            totalPredictions++;
+            classificationCounts[classification.class]++;
+            
+            document.getElementById('totalPredictions').textContent = totalPredictions;
+            
+            // Update chart
+            statsChart.data.datasets[0].data = [
+                classificationCounts.small,
+                classificationCounts.medium,
+                classificationCounts.large
+            ];
+            statsChart.update();
+        }
+
+        // Fungsi untuk menambahkan ke riwayat
+        function addToHistory(lat, lng, depth, magnitude, classification) {
+            const historyItem = {
+                timestamp: new Date(),
+                lat, lng, depth, magnitude, classification
+            };
+            
+            predictionHistory.unshift(historyItem);
+            
+            // Batasi riwayat maksimal 10 item
+            if (predictionHistory.length > 10) {
+                predictionHistory.pop();
+            }
+            
+            updateHistoryDisplay();
+        }
+
+        // Fungsi untuk update tampilan riwayat
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById('historyList');
+            
+            if (predictionHistory.length === 0) {
+                historyList.innerHTML = `
+                    <div class="text-center text-muted p-3">
+                        <i class="fas fa-info-circle"></i> Belum ada prediksi
+                    </div>
+                `;
+                return;
+            }
+            
+            historyList.innerHTML = predictionHistory.map(item => `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="classification-badge badge-${item.classification.class}">
+                                <i class="${getEarthquakeIcon(item.classification)}"></i>
+                                ${item.classification.label}
+                            </span>
+                            <small class="text-muted d-block">
+                                Mag: ${item.magnitude} | Depth: ${item.depth}km
+                            </small>
+                        </div>
+                        <small class="text-muted">
+                            ${item.timestamp.toLocaleTimeString()}
+                        </small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Event listener untuk form
+        document.getElementById('quakeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const lat = parseFloat(document.getElementById('latInput').value);
+            const lng = parseFloat(document.getElementById('lonInput').value);
+            const depth = parseFloat(document.getElementById('depthInput').value);
+            const magnitude = parseFloat(document.getElementById('magInput').value);
+            
+            // Validasi input
+            if (isNaN(lat) || isNaN(lng) || isNaN(depth) || isNaN(magnitude)) {
+                alert('Mohon isi semua field dengan benar!');
+                return;
+            }
+            
+            // Tampilkan loading
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+            
+            // Simulasi delay untuk efek loading
+            setTimeout(() => {
+                // Klasifikasi gempa
+                const classification = classifyEarthquake(magnitude);
+                
+                // Tampilkan hasil
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = `
+                    <div class="alert alert-${classification.color}">
+                        <h5><i class="${getEarthquakeIcon(classification)} earthquake-icon"></i>${classification.label}</h5>
+                        <hr>
+                        <p><strong>Detail Gempa:</strong></p>
+                        <ul class="mb-0">
+                            <li>Koordinat: ${lat}, ${lng}</li>
+                            <li>Kedalaman: ${depth} km</li>
+                            <li>Magnitudo: ${magnitude}</li>
+                            <li>Klasifikasi: ${classification.label}</li>
+                        </ul>
+                    </div>
+                `;
+                
+                // Update statistik dan riwayat
+                updateStats(classification);
+                addToHistory(lat, lng, depth, magnitude, classification);
+                
+                // Tambahkan marker di peta
+                addEarthquakeMarker(lat, lng, magnitude, classification);
+                
+                // Sembunyikan loading dan tampilkan hasil
+                document.getElementById('loadingSpinner').style.display = 'none';
+                resultDiv.style.display = 'block';
+                
+                // Scroll ke hasil
+                resultDiv.scrollIntoView({ behavior: 'smooth' });
+                
+            }, 1000);
+        });
+
+        // Inisialisasi tampilan riwayat
+        updateHistoryDisplay();
+    </script>
+</body>
+</html>
